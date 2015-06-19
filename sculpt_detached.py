@@ -63,12 +63,17 @@ class SculptDetached(bpy.types.Operator):
         
         bpy.data.meshes.remove(bpy.data.meshes[ob_dat])
         
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all()
-        bpy.ops.mesh.remove_doubles()
-        bpy.ops.mesh.select_all(action='DESELECT')        
-        bpy.ops.object.editmode_toggle()                     
- 
+        bm = bmesh.new()
+        bm.from_mesh(context.active_object.data)
+        
+        for v in bm.verts:
+            v.select = True
+        
+        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=0.001)
+
+        bm.to_mesh(context.active_object.data)
+        bm.free()        
+        
     def modal(self, context, event):
         
         if event.type in ['SPACE'] or context.active_object.mode == "OBJECT" or context.active_object.mode == "EDIT":
