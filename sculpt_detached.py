@@ -17,11 +17,12 @@ import bmesh
 from bpy.props import *
 
 class SculptDetached(bpy.types.Operator):
-    '''Isolate Sculpt Areas'''
+    '''Isolate Sculpt Areas via Vertex Groups'''
     bl_idname = "sculpt.detached"
     bl_label = "Detach sculpt areas via vertex group"
     
     def detach(self, ob):
+        wm = bpy.context.window_manager        
         
         bm = bmesh.new()
         bm.from_mesh(ob.data)
@@ -34,11 +35,17 @@ class SculptDetached(bpy.types.Operator):
                 v.select_set(False)
         bm.select_flush_mode()                
        
-        for v in bm.verts:
-
-            dvert = v[dvert_lay]
-            if group_index in dvert: v.select = True
-
+        if wm.sculpt_detach_inv == False:
+            for v in bm.verts:
+                dvert = v[dvert_lay]
+                if group_index in dvert: v.select = True
+        else:
+            for g in ob.vertex_groups:
+                if g.index != group_index:
+                    for v in bm.verts:
+                        dvert = v[dvert_lay]
+                        if g.index in dvert: v.select = True            
+                            
         bm.select_flush(False) 
         bm.to_mesh(ob.data)
         bm.free()
@@ -100,9 +107,7 @@ class SculptDetached(bpy.types.Operator):
         self.detach(bpy.data.objects[obj.name])
         
         for selObj in context.selected_objects:
-            
             if selObj != obj:
-            
                 selObj.select = True
                 context.scene.objects.active = bpy.data.objects[selObj.name]
                 selObj.name = obj.name + "_" + split_vg
@@ -114,10 +119,9 @@ class SculptDetached(bpy.types.Operator):
     
 class MESH_UL_sculptdetach_vgroups(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        #self.use_filter_show = False
         vgroup = item
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.prop(vgroup, "name", text="", emboss=False, icon_value=icon)
+            layout.prop(vgroup, "name", text="", emboss=False)
         elif self.layout_type == 'GRID':
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)             
@@ -132,12 +136,10 @@ class SculptDetachedPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        wm = context.window_manager        
 
         ob = context.object
         
-        row_sw = layout.row(align=True)
-        row_sw.label("Vertex Groups")    
-
         if ob.type == "MESH":
             group = ob.vertex_groups.active
             
@@ -150,10 +152,13 @@ class SculptDetachedPanel(bpy.types.Panel):
 
         row_sw = layout.row(align=True)
         row_sw.alignment = 'EXPAND'
-        row_sw.operator("sculpt.detached", "Sculpt Detached")                        
-       
+        row_sw.operator("sculpt.detached", "Sculpt Detached")
+        row_sw.prop(wm, "sculpt_detach_inv", text="", icon='ARROW_LEFTRIGHT')                        
+        
 def register():
     bpy.utils.register_module(__name__)
+    
+    bpy.types.WindowManager.sculpt_detach_inv = BoolProperty(default=False)     
     
 def unregister():
     bpy.utils.unregister_module(__name__)
