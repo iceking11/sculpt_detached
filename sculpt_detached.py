@@ -92,6 +92,11 @@ class SculptDetached(bpy.types.Operator):
         obj =  context.active_object
         split_vg = context.active_object.vertex_groups.active.name
 
+        if len(bpy.context.selected_objects) > 1:
+            for selObj in bpy.context.selected_objects:
+                if selObj != obj:
+                    selObj.select = False
+                                
         self.detach(bpy.data.objects[obj.name])
         
         for selObj in context.selected_objects:
