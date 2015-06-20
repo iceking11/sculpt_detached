@@ -8,9 +8,10 @@ bl_info = {
     "warning": "",
     "wiki_url": "",
     "tracker_url": "",
-    "category": "Sculpt Tools"}
+    "category": "Sculpt"}
 
 import bpy
+from bpy.types import Menu, Panel, UIList
 import math
 import bmesh
 from bpy.props import *
@@ -104,7 +105,17 @@ class SculptDetached(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='SCULPT')
         context.window_manager.modal_handler_add(self)
                                 
-        return {'RUNNING_MODAL'}         
+        return {'RUNNING_MODAL'}
+    
+class MESH_UL_sculptdetach_vgroups(UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        #self.use_filter_show = False
+        vgroup = item
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.prop(vgroup, "name", text="", emboss=False, icon_value=icon)
+        elif self.layout_type == 'GRID':
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon_value=icon)             
         
 class SculptDetachedPanel(bpy.types.Panel):
     """Sculpt Detached Functions"""
@@ -112,22 +123,25 @@ class SculptDetachedPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_sculpt_detached"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
-    bl_category = 'Sculpt Tools'
+    bl_category = 'Sculpt'
 
     def draw(self, context):
         layout = self.layout
 
         ob = context.object
         
+        row_sw = layout.row(align=True)
+        row_sw.label("Vertex Groups")    
+
         if ob.type == "MESH":
             group = ob.vertex_groups.active
-
+            
             rows = 2
             if group:
                 rows = 4
 
             row = layout.row()
-            row.template_list("MESH_UL_vgroups", "", ob, "vertex_groups", ob.vertex_groups, "active_index", rows=rows)        
+            row.template_list("MESH_UL_sculptdetach_vgroups", "", ob, "vertex_groups", ob.vertex_groups, "active_index", rows=rows)        
 
         row_sw = layout.row(align=True)
         row_sw.alignment = 'EXPAND'
